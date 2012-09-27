@@ -19,8 +19,8 @@ instance is used for storing the counters. A simple example:
 You can also ask for an estimate from multiple counters and you'll get
 an estimate of the size of their union:
 
-    ['joe', 'denny', 'linda', 'jimmy', 'paul'].each do |wing_member|
-      counter.add('wings', wing_member)
+    ['joe', 'denny', 'linda', 'jimmy', 'paul'].each do |wings_member|
+      counter.add('wings', wings_member)
     end
 
     puts "There are approximately #{counter.count('beatles', 'wings')} people who were in the Beatles or Wings"
