@@ -58,7 +58,7 @@ describe HyperLogLog do
   # implementation, since it exercises all of the cases in HyperLogLog's
   # count method except for the correction for very large set sizes.
 
-  it "produces acceptable estimates" do
+  it "produces acceptable estimates for counts" do
     max_items = 1000
     redis = Redis.new
     (6..16).each do |b|
@@ -79,6 +79,61 @@ describe HyperLogLog do
       bad_estimates.should < max_items / 100.00
       very_bad_estimates.should == 0
     end
+  end
+
+  it "produces acceptable estimates for unions with few elements in common" do
+    b, max_items = 10, 2000
+    counter = HyperLogLog.new(Redis.new, b)
+    bad_estimates = 0
+    very_bad_estimates = 0
+    expected_relative_error = 1.04 / Math.sqrt(2 ** b)
+    max_items.times do |i|
+      value1 = Digest::MD5.hexdigest("value#{i}")
+      counter.add("mycounter1", value1)
+      value2 = Digest::MD5.hexdigest("value#{i}incounter2")
+      counter.add("mycounter2", value2)
+      value3 = Digest::MD5.hexdigest("this is value#{i}")
+      counter.add("mycounter3", value3)
+      actual = 3 * (i + 1)
+      approximate = counter.count("mycounter1", "mycounter2", "mycounter3")
+      relative_error = (actual - approximate).abs / Float(actual)
+      bad_estimates += 1 if relative_error > expected_relative_error * 2
+      very_bad_estimates += 1 if relative_error > expected_relative_error * 3
+    end
+    bad_estimates.should < (3 * max_items) / 100.00
+    very_bad_estimates.should == 0
+  end
+
+  it "produces acceptable estimates for unions with many elements in common" do
+    b, max_items, intersection_size = 10, 1000, 2000
+    counter = HyperLogLog.new(Redis.new, b)
+    bad_estimates = 0
+    very_bad_estimates = 0
+    expected_relative_error = 1.04 / Math.sqrt(2 ** b)
+
+    intersection_size.times do |i|
+      value = Digest::MD5.hexdigest("test#{i}value")
+      ['mycounter1', 'mycounter2', 'mycounter3'].each do |counter_name|
+        counter.add(counter_name, value)
+      end
+    end
+
+    max_items.times do |i|
+      value1 = Digest::MD5.hexdigest("value#{i}")
+      counter.add("mycounter1", value1)
+      value2 = Digest::MD5.hexdigest("value#{i}isincounter2")
+      counter.add("mycounter2", value2)
+      value3 = Digest::MD5.hexdigest("this is value#{i}")
+      counter.add("mycounter3", value3)
+      actual = 3 * (i + 1) + intersection_size
+      approximate = counter.count("mycounter1", "mycounter2", "mycounter3")
+      relative_error = (actual - approximate).abs / Float(actual)
+      bad_estimates += 1 if relative_error > expected_relative_error * 2
+      very_bad_estimates += 1 if relative_error > expected_relative_error * 3
+    end
+
+    bad_estimates.should < ((3 * max_items) + intersection_size) / 100.00
+    very_bad_estimates.should == 0
   end
 
 end

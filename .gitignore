@@ -12,6 +12,7 @@
 .pt
 docs/*
 log/*
+pkg/*
 .autotest
 *.watchr
 *.sublime-project

@@ -23,4 +23,7 @@ RSpec.configure do |config|
   config.before(:each) do
     Redis.new.flushdb
   end
+  config.after(:each) do
+    Redis.new.flushdb
+  end
 end

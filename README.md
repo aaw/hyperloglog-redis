@@ -14,7 +14,16 @@ instance is used for storing the counters. A simple example:
       counter.add('beatles', beatle)
     end
 
-    puts "There are approximately #{counter.count('beatles')} distinct beatles!"
+    puts "There are approximately #{counter.count('beatles')} distinct Beatles"
+
+You can also ask for an estimate from multiple counters and you'll get
+an estimate of the size of their union:
+
+    ['joe', 'denny', 'linda', 'jimmy', 'paul'].each do |wing_member|
+      counter.add('wings', wing_member)
+    end
+
+    puts "There are approximately #{counter.count('beatles', 'wings')} people who were in the Beatles or Wings"
 
 Each HyperLogLog counter uses a small, fixed amount of space but can
 estimate the cardinality of any set of up to around a billion values with

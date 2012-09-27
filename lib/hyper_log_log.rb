@@ -26,9 +26,12 @@ class HyperLogLog
      @redis.zadd(counter_name, [(max_run_of_zeros || 0), rho(w)].max, function_name)
   end
 
-  def count(counter_name)
-    all_estimates = @redis.zrange(counter_name, 0, -1, {withscores: true})
-    estimate_sum = all_estimates.map{ |f, score| 2 ** -score }.reduce(:+) || 0
+  def count(*counter_names)
+    all_estimates = counter_names.map{ |counter_name| @redis.zrange(counter_name, 0, -1, {withscores: true}) }
+                                 .reduce(:concat)
+                                 .group_by{ |value, score| value }
+                                 .map{ |group, counters| 2 ** -counters.map{ |x| x.last }.max }
+    estimate_sum = all_estimates.reduce(:+) || 0
     estimate = @alpha * @m * @m * ((estimate_sum + @m - all_estimates.length) ** -1)
     if estimate <= 2.5 * @m
       if all_estimates.length == @m
