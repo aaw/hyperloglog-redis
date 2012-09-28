@@ -45,8 +45,8 @@ Unions and intersections
 
 You can also ask for an estimate of the union from multiple counters:
 
-    ['joe', 'denny', 'linda', 'jimmy', 'paul'].each do |wing_member|
-      counter.add('wings', wing_member)
+    ['joe', 'denny', 'linda', 'jimmy', 'paul'].each do |wings_member|
+      counter.add('wings', wings_member)
     end
 
     puts "There are approximately #{counter.union('beatles', 'wings')} people who were in the Beatles or Wings"
