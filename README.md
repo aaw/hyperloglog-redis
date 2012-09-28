@@ -16,15 +16,6 @@ instance is used for storing the counters. A simple example:
 
     puts "There are approximately #{counter.count('beatles')} distinct Beatles"
 
-You can also ask for an estimate from multiple counters and you'll get
-an estimate of the size of their union:
-
-    ['joe', 'denny', 'linda', 'jimmy', 'paul'].each do |wing_member|
-      counter.add('wings', wing_member)
-    end
-
-    puts "There are approximately #{counter.count('beatles', 'wings')} people who were in the Beatles or Wings"
-
 Each HyperLogLog counter uses a small, fixed amount of space but can
 estimate the cardinality of any set of up to around a billion values with
 relative error of about 1.04 / Math.sqrt(2 ** b), where b is a parameter
@@ -48,6 +39,34 @@ The HyperLogLog algorithm is described and analyzed in the paper
 algorithm"](http://algo.inria.fr/flajolet/Publications/FlFuGaMe07.pdf) 
 by Flajolet, Fusy, Gandouet, and Meunier. Our implementation closely 
 follows the program described in Section 4 of that paper.
+
+Unions and intersections
+========================
+
+You can also ask for an estimate of the union from multiple counters:
+
+    ['joe', 'denny', 'linda', 'jimmy', 'paul'].each do |wing_member|
+      counter.add('wings', wing_member)
+    end
+
+    puts "There are approximately #{counter.union('beatles', 'wings')} people who were in the Beatles or Wings"
+
+The same relative error guarantee above applies to unions: a union of
+size N can be estimated to within N * (1.04 / Math.sqrt(2 ** b)) elements,
+regardless of how many HyperLogLog counters that union spans.
+
+Intersections can also be estimated:
+
+    puts "There are approximately #{counter.intersection('beatles', 'wings')} people who were in both the Beatles and Wings"
+
+However, intersections of HyperLogLog counters are calculated indirectly via the
+[inclusion/exclusion principle](http://en.wikipedia.org/wiki/Inclusion%E2%80%93exclusion_principle)
+as a sum of unions and there aren't good theoretical bounds on the error of that sum. In
+practice, the estimates that come out of small intersections tend to follow the
+same relative error patterns, but beware using this type of estimation on large
+intersections, both because the errors can be much larger than those guaranteed
+for unions and the complexity of computing intersections grows exponentially with 
+the number of counters being intersected.
 
 Installation
 ============

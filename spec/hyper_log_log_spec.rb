@@ -95,7 +95,7 @@ describe HyperLogLog do
       value3 = Digest::MD5.hexdigest("this is value#{i}")
       counter.add("mycounter3", value3)
       actual = 3 * (i + 1)
-      approximate = counter.count("mycounter1", "mycounter2", "mycounter3")
+      approximate = counter.union("mycounter1", "mycounter2", "mycounter3")
       relative_error = (actual - approximate).abs / Float(actual)
       bad_estimates += 1 if relative_error > expected_relative_error * 2
       very_bad_estimates += 1 if relative_error > expected_relative_error * 3
@@ -126,7 +126,7 @@ describe HyperLogLog do
       value3 = Digest::MD5.hexdigest("this is value#{i}")
       counter.add("mycounter3", value3)
       actual = 3 * (i + 1) + intersection_size
-      approximate = counter.count("mycounter1", "mycounter2", "mycounter3")
+      approximate = counter.union("mycounter1", "mycounter2", "mycounter3")
       relative_error = (actual - approximate).abs / Float(actual)
       bad_estimates += 1 if relative_error > expected_relative_error * 2
       very_bad_estimates += 1 if relative_error > expected_relative_error * 3
@@ -134,6 +134,58 @@ describe HyperLogLog do
 
     bad_estimates.should < ((3 * max_items) + intersection_size) / 100.00
     very_bad_estimates.should == 0
+  end
+
+  # There are no good theoretical guarantees that I know of for arbitrary
+  # intersection estimation, since it's expessed as the sum of unions of
+  # HyperLogLog counters, but it tends to work okay in practice, as seen below.
+
+  it "produces decent estimates for intersections" do
+    b, max_items = 6, 1000
+    counter = HyperLogLog.new(Redis.new, b)
+    expected_relative_error = 1.04 / Math.sqrt(2 ** b)
+
+    max_items.times do |i|
+      value1 = Digest::MD5.hexdigest("first-value#{i}")
+      value2 = Digest::MD5.hexdigest("second-value#{i}")
+      value3 = Digest::MD5.hexdigest("third-value#{i}")
+      value4 = Digest::MD5.hexdigest("fourth-value#{i}")
+      counter.add("mycounter1", value1)
+      counter.add("mycounter2", value2)
+      counter.add("mycounter3", value3)
+      counter.add("mycounter4", value4)
+      [value1, value2, value3, value4].each{ |value| counter.add("mycounter5", value) }
+    end
+
+    small_counters = ['mycounter1', 'mycounter2', 'mycounter3', 'mycounter4']
+    
+    small_counters.each do |counter_name|
+      intersection_estimate = counter.intersection(counter_name, 'mycounter5')
+      intersection_estimate.should > 0
+      (intersection_estimate - counter.count(counter_name)).abs.should < max_items * expected_relative_error
+    end
+
+    [2,3].each do |intersection_size|
+      small_counters.combination(intersection_size).each do |counter_names|
+        intersection_estimate = counter.intersection(*counter_names)
+        intersection_estimate.should >= 0
+        intersection_estimate.should < intersection_size * max_items * expected_relative_error
+      end
+    end
+
+    100.times do |i|
+      value = Digest::MD5.hexdigest("somethingintheintersection#{i}")
+      small_counters.each { |counter_name| counter.add(counter_name, value) }
+    end
+
+    [2,3,4].each do |intersection_size|
+      small_counters.combination(intersection_size).each do |counter_names|
+        intersection_estimate = counter.intersection(*counter_names)
+        intersection_estimate.should >= 0
+        (intersection_estimate - 100).abs.should < intersection_size * (max_items + 100) * expected_relative_error
+      end
+    end
+
   end
 
 end

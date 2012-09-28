@@ -26,7 +26,19 @@ class HyperLogLog
      @redis.zadd(counter_name, [(max_run_of_zeros || 0), rho(w)].max, function_name)
   end
 
-  def count(*counter_names)
+  def count(counter_name)
+    union_helper([counter_name])
+  end
+
+  def union(*counter_names)
+    union_helper(counter_names)
+  end
+
+  def intersection(*counter_names)
+    [intersection_helper(counter_names, {}), 0].max
+  end
+
+  def union_helper(counter_names)
     all_estimates = counter_names.map{ |counter_name| @redis.zrange(counter_name, 0, -1, {withscores: true}) }
                                  .reduce(:concat)
                                  .group_by{ |value, score| value }
@@ -44,6 +56,15 @@ class HyperLogLog
     else # Correction for large sets
       (-2**32 * Math.log(1 - estimate/(2.0**32))).round
     end
+  end
+
+  def intersection_helper(counter_names, cache)
+    sum = union_helper(counter_names) - (1...counter_names.length).map do |k|
+      ((-1) ** (k + 1)) * counter_names.combination(k).map do |group| 
+        cache[group] ||= intersection_helper(group, cache) 
+      end.inject(0, :+)
+    end.inject(0, :+)
+    ((-1) ** (counter_names.length + 1)) * sum
   end
 
   # rho(i) is the position of the first 1 in the binary representation of i,
