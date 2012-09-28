@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "hyperloglog-redis"
-  s.version = "0.2.0"
+  s.version = "0.3.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Aaron Windsor"]
-  s.date = "2012-09-27"
+  s.date = "2012-09-28"
   s.description = "An implementation of the HyperLogLog set cardinality estimation algorithm in Ruby using Redis as a back-end"
   s.email = "aaron.windsor@gmail.com"
   s.extra_rdoc_files = [
