@@ -19,30 +19,47 @@ class HyperLogLog
   end
 
   def add(counter_name, value)
-     hash = MurmurHash3::V32.murmur3_32_str_hash(value)
-     function_name = (hash % @m).to_s
-     w = hash / @m
-     max_run_of_zeros = @redis.zscore(counter_name, function_name)
-     @redis.zadd(counter_name, [(max_run_of_zeros || 0), rho(w)].max, function_name)
+    hash = MurmurHash3::V32.murmur3_32_str_hash(value)
+    function_name = hash % @m
+    w = hash / @m
+    existing_value = (@redis.hget(counter_name, function_name) || 0).to_i
+    new_value = [existing_value, rho(w)].max
+    @redis.hset(counter_name, function_name, new_value) if new_value > existing_value
   end
 
+  # Estimate the cardinality of a single set
   def count(counter_name)
     union_helper([counter_name])
   end
 
+  # Estimate the cardinality of the union of several sets
   def union(*counter_names)
     union_helper(counter_names)
   end
 
+  # Store the union of several sets in *destination* so that it can be used as 
+  # a HyperLogLog counter later.
+  def union_store(destination, *counter_names)
+    raw_union(counter_names).each do |key, count|
+      @redis.hset(destination, key, count)
+    end
+  end
+
+  # Estimate the cardinality of the intersection of several sets. We do this by 
+  # using the principle of inclusion and exclusion to represent the size of the
+  # intersection as the alternating sum of an exponential number of 
+  # cardinalities of unions of smaller sets.
   def intersection(*counter_names)
-    [intersection_helper(counter_names, {}), 0].max
+    icount = (1..counter_names.length).map do |k|
+      counter_names.combination(k).map do |group|
+        ((k % 2 == 0) ? -1 : 1) * union_helper(group)
+      end.inject(0, :+)
+    end.inject(0, :+)
+    [icount, 0].max
   end
 
   def union_helper(counter_names)
-    all_estimates = counter_names.map{ |counter_name| @redis.zrange(counter_name, 0, -1, {withscores: true}) }
-                                 .reduce(:concat)
-                                 .group_by{ |value, score| value }
-                                 .map{ |group, counters| 2 ** -counters.map{ |x| x.last }.max }
+    all_estimates = raw_union(counter_names).map{ |value, score| 2 ** -score }
     estimate_sum = all_estimates.reduce(:+) || 0
     estimate = @alpha * @m * @m * ((estimate_sum + @m - all_estimates.length) ** -1)
     if estimate <= 2.5 * @m
@@ -58,13 +75,11 @@ class HyperLogLog
     end
   end
 
-  def intersection_helper(counter_names, cache)
-    sum = union_helper(counter_names) - (1...counter_names.length).map do |k|
-      ((-1) ** (k + 1)) * counter_names.combination(k).map do |group| 
-        cache[group] ||= intersection_helper(group, cache) 
-      end.inject(0, :+)
-    end.inject(0, :+)
-    ((-1) ** (counter_names.length + 1)) * sum
+  def raw_union(counter_names)
+    counter_names.map{ |counter_name| @redis.hgetall(counter_name).map{ |x,y| [x, y.to_i] } }
+                 .reduce(:concat)
+                 .group_by{ |key, count| key }
+                 .map{ |key, counters| [key, counters.map{ |x| x.last }.max] }
   end
 
   # rho(i) is the position of the first 1 in the binary representation of i,
@@ -77,4 +92,5 @@ class HyperLogLog
       @bits_in_hash - Math.log(i, 2).floor
     end
   end
+
 end

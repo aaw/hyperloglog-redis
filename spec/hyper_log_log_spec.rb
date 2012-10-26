@@ -39,6 +39,39 @@ describe HyperLogLog do
     counter.count("counter1").should > counter.count("counter2")
   end
 
+  it "can exactly count small sets" do
+    redis = Redis.new
+    counter = HyperLogLog.new(redis, 11)
+    10.times { |i| counter.add("mycounter", i.to_s) }
+    counter.count("mycounter").should == 10
+  end
+
+  it "can exactly count small unions" do
+    redis = Redis.new
+    counter = HyperLogLog.new(redis, 11)
+    (1..8).each { |i| counter.add("mycounter1", i.to_s) }
+    (5..12).each { |i| counter.add("mycounter2", i.to_s) }
+    counter.union("mycounter1", "mycounter2").should == 12
+  end
+
+  it "can exactly count small intersections" do
+    redis = Redis.new
+    counter = HyperLogLog.new(redis, 11)
+    (1..8).each { |i| counter.add("mycounter1", i.to_s) }
+    (5..12).each { |i| counter.add("mycounter2", i.to_s) }
+    counter.intersection("mycounter1", "mycounter2").should == 4
+  end
+
+  it "can store unions for querying later" do
+    redis = Redis.new
+    counter = HyperLogLog.new(redis, 11)
+    (1..10).each { |i| counter.add("mycounter1", i.to_s) }
+    (5..15).each { |i| counter.add("mycounter2", i.to_s) }
+    (15..25).each { |i| counter.add("mycounter3", i.to_s) }
+    (20..50).each { |i| counter.add("mycounter4", i.to_s) }
+    counter.union_store("aggregate_counter", "mycounter1", "mycounter2", "mycounter3", "mycounter4")
+    counter.union("mycounter1", "mycounter2", "mycounter3", "mycounter4").should == counter.count("aggregate_counter")
+  end
 
   # With parameter b, HyperLogLog should produce estimates that have
   # relative error of 1.04 / Math.sqrt(2 ** b). Of course, this analysis

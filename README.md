@@ -53,7 +53,12 @@ You can also ask for an estimate of the union from multiple counters:
 
 The same relative error guarantee above applies to unions: a union of
 size N can be estimated to within N * (1.04 / Math.sqrt(2 ** b)) elements,
-regardless of how many HyperLogLog counters that union spans.
+regardless of how many HyperLogLog counters that union spans. You can store 
+a unioned counter for querying or combining later with `union_store`:
+
+    counter.union_store('all_beatles_and_wings_members', 'beatles', 'wings')
+    
+    puts "There are approximately #{counter.count('all_beatles_and_wings_members'}} people who were in the Beatles or Wings"
 
 Intersections can also be estimated:
 
