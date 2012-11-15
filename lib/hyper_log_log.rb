@@ -22,9 +22,9 @@ class HyperLogLog
     hash = MurmurHash3::V32.murmur3_32_str_hash(value)
     function_name = hash % @m
     w = hash / @m
-    existing_value = (@redis.hget(counter_name, function_name) || 0).to_i
-    new_value = [existing_value, rho(w)].max
-    @redis.hset(counter_name, function_name, new_value) if new_value > existing_value
+    existing_value = @redis.getrange(counter_name, function_name, function_name).unpack('C').first.to_i
+    new_value = rho(w)
+    @redis.setrange(counter_name, function_name, new_value.chr) if new_value > existing_value
   end
 
   # Estimate the cardinality of a single set
@@ -40,9 +40,7 @@ class HyperLogLog
   # Store the union of several sets in *destination* so that it can be used as 
   # a HyperLogLog counter later.
   def union_store(destination, *counter_names)
-    raw_union(counter_names).each do |key, count|
-      @redis.hset(destination, key, count)
-    end
+    @redis.set(destination, raw_union(counter_names).inject('') {|a, e| a << e.chr})
   end
 
   # Estimate the cardinality of the intersection of several sets. We do this by 
@@ -59,9 +57,9 @@ class HyperLogLog
   end
 
   def union_helper(counter_names)
-    all_estimates = raw_union(counter_names).map{ |value, score| 2 ** -score }
-    estimate_sum = all_estimates.reduce(:+) || 0
-    estimate = @alpha * @m * @m * ((estimate_sum + @m - all_estimates.length) ** -1)
+    all_estimates = raw_union(counter_names).select{|i| i > 0}
+    estimate_sum = all_estimates.reduce(0.0) {|a, score| a + 2.0 ** -score}
+    estimate = @alpha * @m * @m * ((estimate_sum + @m - all_estimates.length) ** -1.0)
     if estimate <= 2.5 * @m
       if all_estimates.length == @m
         estimate.round
@@ -76,21 +74,20 @@ class HyperLogLog
   end
 
   def raw_union(counter_names)
-    counter_names.map{ |counter_name| @redis.hgetall(counter_name).map{ |x,y| [x, y.to_i] } }
-                 .reduce(:concat)
-                 .group_by{ |key, count| key }
-                 .map{ |key, counters| [key, counters.map{ |x| x.last }.max] }
+    counters = @redis.mget(*counter_names).compact
+
+    return [] if counters.none?
+    return counters.first.each_byte if counters.one?
+
+    counters.map{|c| c.unpack("C#{@m}")}.transpose.map {|e| e.compact.max.to_i}
   end
 
   # rho(i) is the position of the first 1 in the binary representation of i,
   # reading from most significant to least significant bits. Some examples:
   # rho(1...) = 1, rho(001...) = 3, rho(000...0) = @bits_in_hash + 1
   def rho(i)
-    if i == 0
-      @bits_in_hash + 1 
-    else
-      @bits_in_hash - Math.log(i, 2).floor
-    end
+    return @bits_in_hash + 1 if i == 0
+    @bits_in_hash - Math.log(i, 2).floor
   end
 
 end
