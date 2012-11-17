@@ -1,3 +1,14 @@
+## 2.0.0 (unreleased)
+
+* Changed the underlying storage from Redis hashes to bitstrings [simonkro](https://github.com/simonkro)
+  TODO: put example upgrade script here.
+
+* Moved main counter implementation from `HyperLogLog` to the class `HyperLogLog::Counter`
+
+* Added `HyperLogLog::TimeSeriesCounter` a counter type that can estimate cardinalities 
+  for all events from a particular point in the past until the present.
+
+
 ## 1.0.0 (10/26/2012)
 
 * Changed the underlying storage from Redis sorted sets to Redis hashes. This
