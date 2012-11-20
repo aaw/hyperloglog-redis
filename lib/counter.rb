@@ -2,6 +2,9 @@ module HyperLogLog
   class Counter
     include Algorithm
 
+    # This is the implementation of the standard HyperLogLog algorithm, storing 
+    # counts in each byte of a string of length 2 ** b. 
+
     def add(counter_name, value)
       hash, function_name, new_value = hash_info(value)
       existing_value = @redis.getrange(counter_name, function_name, function_name).unpack('C').first.to_i
@@ -23,6 +26,8 @@ module HyperLogLog
     def union_store(destination, counter_names)
       @redis.set(destination, raw_union(counter_names).inject('') {|a, e| a << e.chr})
     end
+
+    private
     
     def raw_union(counter_names, time=nil)
       counters = @redis.mget(*counter_names).compact

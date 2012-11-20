@@ -20,11 +20,6 @@ module HyperLogLog
       end
     end
 
-    def hash_info(value)
-      hash = MurmurHash3::V32.murmur3_32_str_hash(value)
-      [hash, hash % @m, rho(hash / @m)]
-    end
-
     # Estimate the cardinality of the intersection of several sets. We do this by 
     # using the principle of inclusion and exclusion to represent the size of the
     # intersection as the alternating sum of an exponential number of 
@@ -37,7 +32,14 @@ module HyperLogLog
       end.inject(0, :+)
       [icount, 0].max
     end
-    
+
+    private
+
+    def hash_info(value)
+      hash = MurmurHash3::V32.murmur3_32_str_hash(value)
+      [hash, hash % @m, rho(hash / @m)]
+    end
+
     def union_helper(counter_names, time=0)
       all_estimates = raw_union(counter_names, time).select{ |i| i > 0 }
       estimate_sum = all_estimates.reduce(0.0){ |a, score| a + 2.0 ** -score }
