@@ -7,7 +7,7 @@
         def upgrade_1_2(counter, redis)
           return if redis.type(counter) == "string"
           sketch = redis.hgetall(counter)
-	  redis.del(counter)
+          redis.del(counter)
           sketch.each{ |key, value| redis.setrange(counter, key.to_i, value.to_i.chr) }
         end
 
