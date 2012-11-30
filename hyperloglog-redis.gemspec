@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "hyperloglog-redis"
-  s.version = "1.0.0"
+  s.version = "2.0.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Aaron Windsor"]
-  s.date = "2012-10-26"
+  s.date = "2012-11-30"
   s.description = "An implementation of the HyperLogLog set cardinality estimation algorithm in Ruby using Redis as a back-end"
   s.email = "aaron.windsor@gmail.com"
   s.extra_rdoc_files = [
@@ -27,10 +27,13 @@ Gem::Specification.new do |s|
     "Rakefile",
     "VERSION",
     "hyperloglog-redis.gemspec",
-    "lib/hyper_log_log.rb",
+    "lib/algorithm.rb",
+    "lib/counter.rb",
     "lib/hyperloglog-redis.rb",
+    "lib/time_series_counter.rb",
     "spec/hyper_log_log_spec.rb",
-    "spec/spec_helper.rb"
+    "spec/spec_helper.rb",
+    "spec/time_series_counter_spec.rb"
   ]
   s.homepage = "http://github.com/aaw/hyperloglog-redis"
   s.licenses = ["MIT"]
@@ -47,12 +50,14 @@ Gem::Specification.new do |s|
       s.add_development_dependency(%q<jeweler>, ["~> 1.8.4"])
       s.add_development_dependency(%q<rake>, ["~> 0.9.2.2"])
       s.add_development_dependency(%q<rspec>, ["~> 2.11.0"])
+      s.add_development_dependency(%q<timecop>, ["~> 0.5.3"])
     else
       s.add_dependency(%q<murmurhash3>, ["~> 0.1.3"])
       s.add_dependency(%q<redis>, ["~> 3.0.1"])
       s.add_dependency(%q<jeweler>, ["~> 1.8.4"])
       s.add_dependency(%q<rake>, ["~> 0.9.2.2"])
       s.add_dependency(%q<rspec>, ["~> 2.11.0"])
+      s.add_dependency(%q<timecop>, ["~> 0.5.3"])
     end
   else
     s.add_dependency(%q<murmurhash3>, ["~> 0.1.3"])
@@ -60,6 +65,7 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<jeweler>, ["~> 1.8.4"])
     s.add_dependency(%q<rake>, ["~> 0.9.2.2"])
     s.add_dependency(%q<rspec>, ["~> 2.11.0"])
+    s.add_dependency(%q<timecop>, ["~> 0.5.3"])
   end
 end
 
