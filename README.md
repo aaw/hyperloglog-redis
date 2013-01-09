@@ -120,7 +120,10 @@ error. In practice, the relative error is largely a function of the relative siz
 the sets, the amount they overlap, and the number of sets being intersected. If the
 error of any term in the inclusion-exclusion formula is as large as the intersection
 cardinality, then the estimate will be useless. For the best results, intersect only
-two or three sets of roughly the same size.
+two or three sets of roughly the same size. For instance, given two sets whose
+cardinalities are within one order of magnitude and whose intersection is roughly 10%
+of the smaller set, the error (relative to the true intersection cardinality) would be
+about 10-30%.
 
 * For time queries, the relative error applies to the size of the set within the time
 range you've queried. For example, given a set of cardinality 1,000,000 that has had
