@@ -116,12 +116,11 @@ the union of counters is lossless in the sense that you end up with the same cou
 you would have arrived at had you observed the union of all of the individual events.
 
 * For an intersection of counters, there's no good theoretical bound on the relative
-error. In practice, and especially for intersections involving a small number of sets,
-the relative error you obtain tends to be in relation to the size of the union of the
-sets involved. For example, if you have two sets, each of cardinality 5000 and observe
-both sets through HyperLogLog counters with parameter b=10 (3% relative error), you can
-expect the intersection estimate to be within 10000 * 0.03 = 300 of the actual intersection
-size.
+error. In practice, the relative error is largely a function of the relative size of
+the sets, the amount they overlap, and the number of sets being intersected. If the
+error of any term in the inclusion-exclusion formula is as large as the intersection
+cardinality, then the estimate will be useless. For the best results, intersect only
+two or three sets of roughly the same size.
 
 * For time queries, the relative error applies to the size of the set within the time
 range you've queried. For example, given a set of cardinality 1,000,000 that has had
