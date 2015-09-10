@@ -21,7 +21,7 @@ relative error of 1.04 / Math.sqrt(2 ** b) with high probability, where b is a
 parameter passed to the `HyperLogLog::Counter` initializer that defaults to 10. 
 With b = 10, each counter is represented by a 1 KB string in Redis and we get 
 an expected relative error of 3%. Contrast this with the amount of space needed 
-to compute set cardinality exactly, which is over 100 MB for a even a bit vector 
+to compute set cardinality exactly, which is over 100 MB for even a bit vector 
 representing a set with a billion values.
 
 The basic idea of HyperLogLog (and its predecessors PCSA, LogLog, and others) is 
